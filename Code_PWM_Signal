@@ -1,0 +1,53 @@
+// PWM Signal Generator using Timer1 on Arduino Uno
+// Frequency: 1 kHz, Duty Cycle: 0% to 100% in 10% increments
+
+void setup() {
+  // Set pin 9 as output (Timer1 PWM pin OC1A)
+  pinMode(9, OUTPUT);
+  
+  // Configure Timer1
+  TCCR1A = 0; // Clear Timer1 control registers
+  TCCR1B = 0;
+  
+  // Set Fast PWM mode, 10-bit resolution
+  TCCR1A |= (1 << WGM11) | (1 << WGM10); // Fast PWM, 10-bit
+  TCCR1B |= (1 << WGM12);
+  
+  // Set prescaler to 8
+  TCCR1B |= (1 << CS11);
+  
+  // Enable PWM on OC1A (pin 9), non-inverting mode
+  TCCR1A |= (1 << COM1A1);
+  
+  // Set TOP value for 1 kHz frequency
+  // For 16 MHz clock, prescaler = 8: 
+  // TOP = (16e6 / (8 * 1000)) - 1 = 1999
+  ICR1 = 1999;
+  
+  // Initialize with 0% duty cycle
+  OCR1A = 0;
+  // Initialize Serial for duty cycle control
+  Serial.begin(9600);
+  Serial.println("Enter duty cycle (0-100, in 10% increments):");
+}
+void loop() {
+  if (Serial.available() > 0) {
+    int dutyCycle = Serial.parseInt();
+     // Validate input (0-100, multiples of 10)
+    if (dutyCycle >= 0 && dutyCycle <= 100 && dutyCycle % 10 == 0) {
+      // Calculate OCR1A value: (dutyCycle/100) * TOP
+      uint16_t ocrValue = (uint16_t)((dutyCycle / 100.0) * ICR1);
+      OCR1A = ocrValue;
+      
+      Serial.print("Duty Cycle set to: ");
+      Serial.print(dutyCycle);
+      Serial.println("%");
+    } else {
+      Serial.println("Invalid input! Enter 0-100 in 10% increments.");
+    }
+     // Clear serial buffer
+    while (Serial.available() > 0) {
+      Serial.read();
+    }
+  }
+}
